@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Arham Hunger Box - POS Management System</title>
+  <style>
+    * { box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; }
+    body { margin: 0; background: #0f172a; color: #f8fafc; }
+    header {
+      background: #1e293b;
+      padding: 14px 20px;
+      border-bottom: 2px solid #f59e0b;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    header h1 { margin: 0; font-size: 20px; color: #fbbf24; }
+    header p { margin: 2px 0 0; font-size: 12px; color: #cbd5e1; }
+    .container {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 16px;
+      padding: 16px;
+      max-width: 1400px;
+      margin: auto;
+    }
+    @media (max-width: 900px) {
+      .container { grid-template-columns: 1fr; }
+    }
+    .panel {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .panel h2 {
+      margin: 0 0 12px;
+      font-size: 16px;
+      color: #38bdf8;
+      border-bottom: 1px solid #334155;
+      padding-bottom: 8px;
+    }
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .item-card {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    .item-card strong { font-size: 14px; color: #f8fafc; }
+    .item-card small { color: #94a3b8; }
+    .price { color: #4ade80; font-weight: bold; font-size: 14px; }
+    .stock { font-size: 12px; color: #fbbf24; }
+    .stock.low { color: #f87171; }
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 5px;
+      padding: 8px 12px;
+      font-weight: bold;
+      font-size: 13px;
+    }
+    .btn-add { background: #2563eb; color: #fff; }
+    .btn-add:hover { background: #1d4ed8; }
+    .btn-add:disabled { background: #475569; cursor: not-allowed; }
+    .btn-success { background: #16a34a; color: #fff; }
+    .btn-success:hover { background: #15803d; }
+    .btn-warning { background: #d97706; color: #fff; }
+    .btn-warning:hover { background: #b45309; }
+    .btn-danger { background: #dc2626; color: #fff; }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-secondary { background: #475569; color: #fff; }
+    .btn-secondary:hover { background: #334155; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 13px; }
+    th, td { border-bottom: 1px solid #334155; padding: 7px 6px; text-align: left; }
+    th { color: #94a3b8; }
+    input, select {
+      width: 100%;
+      padding: 7px 9px;
+      margin-bottom: 8px;
+      border-radius: 5px;
+      border: 1px solid #475569;
+      background: #0f172a;
+      color: #f8fafc;
+      font-size: 13px;
+    }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .totals { background: #0f172a; padding: 10px; border-radius: 6px; margin-bottom: 10px; font-size: 14px; }
+    .totals div { display: flex; justify-content: space-between; margin: 4px 0; }
+    .grand { font-size: 16px; font-weight: bold; color: #4ade80; border-top: 1px solid #334155; padding-top: 6px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    pre {
+      background: #020617;
+      border: 1px dashed #64748b;
+      padding: 10px;
+      border-radius: 6px;
+      color: #e2e8f0;
+      font-size: 12px;
+      white-space: pre-wrap;
+      max-height: 280px;
+      overflow-y: auto;
+    }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+    .stat-box { background: #0f172a; padding: 8px; border-radius: 6px; border: 1px solid #334155; text-align: center; }
+    .stat-box span { display: block; font-size: 11px; color: #94a3b8; }
+    .stat-box strong { font-size: 15px; color: #fbbf24; }
+    @media print {
+      body * { visibility: hidden; }
+      #receiptBox, #receiptBox * { visibility: visible; }
+      #receiptBox { position: absolute; left: 0; top: 0; width: 100%; background: #fff; color: #000; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Arham Hunger Box — POS System</h1>
+      <p>Al Madina Market, Basement Floor, Kheshgi Payan Chowk, District Nowshera</p>
+    </div>
+    <div>
+      <span id="roleBadge" style="margin-right:8px; color:#fbbf24; font-weight:bold;">Role: ADMIN</span>
+      <button class="btn-secondary" onclick="switchRole()">Switch Role (Admin/Cashier)</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Left Column: Menu & Stock Management -->
+    <div>
+      <div class="panel" style="margin-bottom:16px;">
+        <h2>Menu & Live Stock (Click Add to Bill)</h2>
+        <div id="menuGrid" class="menu-grid"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Add Menu Item / Restock Inventory (Admin)</h2>
+        <div class="row-2">
+          <div>
+            <label>Item Name</label>
+            <input id="newName" placeholder="e.g. Loaded Fries" />
+          </div>
+          <div>
+            <label>Category</label>
+            <input id="newCategory" placeholder="e.g. Pizza, Burgers, Shawarma" />
+          </div>
+        </div>
+        <div class="row-2">
+          <div>
+            <label>Price (PKR)</label>
+            <input id="newPrice" type="number" min="1" placeholder="e.g. 450" />
+          </div>
+          <div>
+            <label>Stock Qty</label>
+            <input id="newStock" type="number" min="0" placeholder="e.g. 20" />
+          </div>
+        </div>
+        <button class="btn-warning" onclick="addMenuItem()">Add / Update Menu Item</button>
+      </div>
+    </div>
+
+    <!-- Right Column: Billing, Receipt & Daily Sales Report -->
+    <div>
+      <div class="panel" style="margin-bottom:16px;">
+        <h2>Customer Bill / Order</h2>
+        <input id="custName" placeholder="Customer Name (default: Walk-in)" />
+        <input id="custEmail" type="email" placeholder="Customer Email (for receipt)" />
+
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Qty</th>
+              <th>Total</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="cartBody"></tbody>
+        </table>
+
+        <div class="row-2">
+          <div>
+            <label>Discount (%)</label>
+            <input id="discountPct" type="number" min="0" max="100" value="0" onchange="renderCart()" />
+          </div>
+          <div>
+            <label>Tax (%)</label>
+            <input id="taxPct" type="number" min="0" max="50" value="5" onchange="renderCart()" />
+          </div>
+        </div>
+
+        <div class="totals">
+          <div><span>Subtotal:</span><span id="subTotalVal">PKR 0.00</span></div>
+          <div><span>Discount:</span><span id="discVal">PKR 0.00</span></div>
+          <div><span>Tax:</span><span id="taxVal">PKR 0.00</span></div>
+          <div class="grand"><span>Grand Total:</span><span id="grandTotalVal">PKR 0.00</span></div>
+        </div>
+
+        <div class="actions">
+          <button class="btn-success" onclick="checkoutOrder()">Generate Bill & Save</button>
+          <button class="btn-danger" onclick="clearCart()">Clear Cart</button>
+        </div>
+      </div>
+
+      <div class="panel" id="receiptBox" style="margin-bottom:16px;">
+        <h2>Receipt</h2>
+        <pre id="receiptText">No receipt generated yet.</pre>
+        <div class="actions" style="margin-top:8px;">
+          <button class="btn-add" onclick="window.print()">Print Receipt</button>
+          <button class="btn-secondary" onclick="downloadReceipt()">Download .TXT</button>
+          <button class="btn-warning" onclick="emailReceipt()">Email Receipt</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Daily Sales Report</h2>
+        <div class="stats">
+          <div class="stat-box"><span>Orders Today</span><strong id="repOrders">0</strong></div>
+          <div class="stat-box"><span>Discounts</span><strong id="repDisc">0</strong></div>
+          <div class="stat-box"><span>Net Sales (PKR)</span><strong id="repNet">0.00</strong></div>
+        </div>
+        <div class="actions">
+          <button class="btn-secondary" onclick="exportSalesCSV()">Export Sales CSV</button>
+          <button class="btn-danger" onclick="resetTodayData()">Reset Data</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEYS = {
+      MENU: "ahb_pos_menu_v1",
+      SALES: "ahb_pos_sales_v1",
+      INV: "ahb_pos_inv_v1"
+    };
+
+    const defaultMenu = [
+      { id: 1, name: "Chicken Tikka Pizza", category: "Pizza", price: 1150, stock: 20 },
+      { id: 2, name: "Zinger Burger", category: "Burgers", price: 550, stock: 30 },
+      { id: 3, name: "Chicken Shawarma", category: "Shawarma", price: 320, stock: 35 },
+      { id: 4, name: "Buffalo Wings (6 pcs)", category: "Buffalo Wings", price: 620, stock: 25 },
+      { id: 5, name: "Crispy Chicken Wings", category: "Chicken Wings", price: 580, stock: 25 },
+      { id: 6, name: "Alfredo Pasta", category: "Pasta", price: 750, stock: 18 },
+      { id: 7, name: "Masala Fries", category: "Fries", price: 250, stock: 50 },
+      { id: 8, name: "Cold Drink", category: "Drinks", price: 120, stock: 80 },
+      { id: 9, name: "Vanilla Ice Cream", category: "Ice Cream", price: 200, stock: 30 }
+    ];
+
+    let role = "ADMIN";
+    let menu = JSON.parse(localStorage.getItem(STORAGE_KEYS.MENU)) || defaultMenu;
+    let sales = JSON.parse(localStorage.getItem(STORAGE_KEYS.SALES)) || [];
+    let invoiceSeq = Number(localStorage.getItem(STORAGE_KEYS.INV)) || 1001;
+    let cart = [];
+    let lastReceipt = "";
+    let lastCustomerEmail = "";
+    let lastInvoiceId = null;
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEYS.MENU, JSON.stringify(menu));
+      localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(sales));
+      localStorage.setItem(STORAGE_KEYS.INV, String(invoiceSeq));
+    }
+
+    function switchRole() {
+      role = role === "ADMIN" ? "CASHIER" : "ADMIN";
+      document.getElementById("roleBadge").textContent = "Role: " + role;
+    }
+
+    function renderMenu() {
+      const grid = document.getElementById("menuGrid");
+      grid.innerHTML = "";
+      menu.forEach(item => {
+        const div = document.createElement("div");
+        div.className = "item-card";
+        div.innerHTML = `
+          <div>
+            <strong>${item.name}</strong><br />
+            <small>${item.category}</small>
+          </div>
+          <div>
+            <div class="price">PKR ${item.price.toFixed(2)}</div>
+            <div class="stock ${item.stock <= 5 ? "low" : ""}">Stock: ${item.stock}</div>
+          </div>
+          <button class="btn-add" ${item.stock <= 0 ? "disabled" : ""} onclick="addToCart(${item.id})">
+            ${item.stock <= 0 ? "Out of Stock" : "+ Add"}
+          </button>
+        `;
+        grid.appendChild(div);
+      });
+    }
+
+    function addMenuItem() {
+      if (role !== "ADMIN") {
+        alert("Only ADMIN can add or update menu items.");
+        return;
+      }
+      const name = document.getElementById("newName").value.trim();
+      const category = document.getElementById("newCategory").value.trim() || "General";
+      const price = Number(document.getElementById("newPrice").value);
+      const stock = parseInt(document.getElementById("newStock").value, 10);
+
+      if (!name || price <= 0 || isNaN(stock) || stock < 0) {
+        alert("Please enter valid item name, price, and stock.");
+        return;
+      }
+
+      const existing = menu.find(m => m.name.toLowerCase() === name.toLowerCase());
+      if (existing) {
+        existing.category = category;
+        existing.price = price;
+        existing.stock += stock;
+      } else {
+        const nextId = menu.length ? Math.max(...menu.map(m => m.id)) + 1 : 1;
+        menu.push({ id: nextId, name, category, price, stock });
+      }
+
+      document.getElementById("newName").value = "";
+      document.getElementById("newCategory").value = "";
+      document.getElementById("newPrice").value = "";
+      document.getElementById("newStock").value = "";
+
+      saveState();
+      renderMenu();
+    }
+
+    function addToCart(itemId) {
+      const item = menu.find(m => m.id === itemId);
+      if (!item || item.stock <= 0) return;
+
+      const existing = cart.find(c => c.id === itemId);
+      const currentQty = existing ? existing.qty : 0;
+      if (currentQty + 1 > item.stock) {
+        alert("Not enough stock for " + item.name);
+        return;
+      }
+
+      if (existing) {
+        existing.qty += 1;
+      } else {
+        cart.push({ id: item.id, name: item.name, price: item.price, qty: 1 });
+      }
+      renderCart();
+    }
+
+    function removeFromCart(itemId) {
+      cart = cart.filter(c => c.id !== itemId);
+      renderCart();
+    }
+
+    function clearCart() {
+      cart = [];
+      renderCart();
+    }
+
+    function calculateTotals() {
+      const subtotal = cart.reduce((sum, c) => sum + c.price * c.qty, 0);
+      const discPct = Math.min(100, Math.max(0, Number(document.getElementById("discountPct").value) || 0));
+      const taxPct = Math.min(50, Math.max(0, Number(document.getElementById("taxPct").value) || 0));
+      const discount = subtotal * (discPct / 100);
+      const taxable = subtotal - discount;
+      const tax = taxable * (taxPct / 100);
+      const total = taxable + tax;
+      return { subtotal, discount, tax, total };
+    }
+
+    function renderCart() {
+      const body = document.getElementById("cartBody");
+      body.innerHTML = "";
+      cart.forEach(c => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${c.name}</td>
+          <td>${c.qty}</td>
+          <td>PKR ${(c.qty * c.price).toFixed(2)}</td>
+          <td><button class="btn-danger" style="padding:3px 7px;" onclick="removeFromCart(${c.id})">X</button></td>
+        `;
+        body.appendChild(tr);
+      });
+
+      const t = calculateTotals();
+      document.getElementById("subTotalVal").textContent = "PKR " + t.subtotal.toFixed(2);
+      document.getElementById("discVal").textContent = "PKR " + t.discount.toFixed(2);
+      document.getElementById("taxVal").textContent = "PKR " + t.tax.toFixed(2);
+      document.getElementById("grandTotalVal").textContent = "PKR " + t.total.toFixed(2);
+    }
+
+    function checkoutOrder() {
+      if (cart.length === 0) {
+        alert("Cart is empty.");
+        return;
+      }
+
+      const custName = document.getElementById("custName").value.trim() || "Walk-in Customer";
+      const custEmail = document.getElementById("custEmail").value.trim();
+      const t = calculateTotals();
+      const now = new Date();
+      const dateStr = now.toISOString().slice(0, 10);
+      const timeStr = now.toLocaleString();
+      const invoiceId = invoiceSeq++;
+
+      cart.forEach(c => {
+        const mItem = menu.find(m => m.id === c.id);
+        if (mItem) mItem.stock = Math.max(0, mItem.stock - c.qty);
+      });
+
+      const sale = {
+        invoiceId,
+        date: dateStr,
+        timestamp: timeStr,
+        customer: custName,
+        email: custEmail,
+        subtotal: t.subtotal,
+        discount: t.discount,
+        tax: t.tax,
+        total: t.total,
+        items: [...cart]
+      };
+      sales.push(sale);
+
+      const lines = [
+        "==========================================",
+        "           ARHAM HUNGER BOX               ",
+        " Al Madina Market, Basement Floor,        ",
+        " Kheshgi Payan Chowk, Dist. Nowshera      ",
+        "==========================================",
+        `Invoice #: ${invoiceId}`,
+        `Date:      ${timeStr}`,
+        `Customer:  ${custName}`,
+        custEmail ? `Email:     ${custEmail}` : "",
+        "------------------------------------------",
+        ...cart.map(c => `${c.name.padEnd(20)} x${String(c.qty).padEnd(3)} PKR ${(c.qty * c.price).toFixed(2)}`),
+        "------------------------------------------",
+        `Subtotal:              PKR ${t.subtotal.toFixed(2)}`,
+        `Discount:              PKR ${t.discount.toFixed(2)}`,
+        `Tax:                   PKR ${t.tax.toFixed(2)}`,
+        "==========================================",
+        `GRAND TOTAL:           PKR ${t.total.toFixed(2)}`,
+        "==========================================",
+        "      Thank you for visiting us!          "
+      ].filter(Boolean);
+
+      lastReceipt = lines.join("\n");
+      lastCustomerEmail = custEmail;
+      lastInvoiceId = invoiceId;
+      document.getElementById("receiptText").textContent = lastReceipt;
+
+      cart = [];
+      document.getElementById("custName").value = "";
+      document.getElementById("custEmail").value = "";
+      document.getElementById("discountPct").value = "0";
+
+      saveState();
+      renderMenu();
+      renderCart();
+      renderDailyReport();
+    }
+
+    function downloadReceipt() {
+      if (!lastReceipt) {
+        alert("Generate a receipt first.");
+        return;
+      }
+      const blob = new Blob([lastReceipt], { type: "text/plain;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `receipt_${lastInvoiceId || "order"}.txt`;
+      a.click();
+    }
+
+    function emailReceipt() {
+      if (!lastReceipt) {
+        alert("Generate a receipt first.");
+        return;
+      }
+      const to = lastCustomerEmail || prompt("Enter customer email address:");
+      if (!to) return;
+      const subject = encodeURIComponent(`Receipt #${lastInvoiceId || ""} - Arham Hunger Box`);
+      const body = encodeURIComponent(lastReceipt);
+      window.location.href = `mailto:${encodeURIComponent(to)}?subject=${subject}&body=${body}`;
+    }
+
+    function renderDailyReport() {
+      const today = new Date().toISOString().slice(0, 10);
+      const todaySales = sales.filter(s => s.date === today);
+      const orders = todaySales.length;
+      const disc = todaySales.reduce((sum, s) => sum + s.discount, 0);
+      const net = todaySales.reduce((sum, s) => sum + s.total, 0);
+
+      document.getElementById("repOrders").textContent = String(orders);
+      document.getElementById("repDisc").textContent = disc.toFixed(2);
+      document.getElementById("repNet").textContent = net.toFixed(2);
+    }
+
+    function exportSalesCSV() {
+      const header = "InvoiceID,Timestamp,Customer,Email,Subtotal,Discount,Tax,Total\n";
+      const rows = sales.map(s =>
+        `${s.invoiceId},"${s.timestamp}","${s.customer}","${s.email}",${s.subtotal.toFixed(2)},${s.discount.toFixed(2)},${s.tax.toFixed(2)},${s.total.toFixed(2)}`
+      ).join("\n");
+      const blob = new Blob([header + rows], { type: "text/csv;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "arham_hunger_box_sales.csv";
+      a.click();
+    }
+
+    function resetTodayData() {
+      if (role !== "ADMIN") {
+        alert("Only ADMIN can reset data.");
+        return;
+      }
+      if (!confirm("Reset saved menu, stock, and sales history?")) return;
+      localStorage.removeItem(STORAGE_KEYS.MENU);
+      localStorage.removeItem(STORAGE_KEYS.SALES);
+      localStorage.removeItem(STORAGE_KEYS.INV);
+      menu = [...defaultMenu];
+      sales = [];
+      invoiceSeq = 1001;
+      cart = [];
+      lastReceipt = "";
+      document.getElementById("receiptText").textContent = "No receipt generated yet.";
+      renderMenu();
+      renderCart();
+      renderDailyReport();
+    }
+
+    renderMenu();
+    renderCart();
+    renderDailyReport();
+  </script>
+</body>
+</html>
